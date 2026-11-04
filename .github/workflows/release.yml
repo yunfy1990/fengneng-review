@@ -10,7 +10,8 @@ on:
 
 permissions:
   contents: write   # 建 release / 传附件所需
-  administration: write  # 改仓库 description / topics（仓库设置类元信息）
+  # 注：内置 GITHUB_TOKEN 无 administration 权限，改仓库 description/topics 会 403。
+  # 故那一步 continue-on-error；需要改仓库元信息时用有 admin 权限的 PAT 手动执行。
 
 jobs:
   release:
@@ -74,8 +75,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 内置 GITHUB_TOKEN 默认无 administration 权限，改仓库元信息可能 403；
-          # 失败不影响 release 本身，故 continue-on-error。
+          # 内置 GITHUB_TOKEN 无 administration 权限（这是 GitHub 的硬限制），
+          # 所以改仓库 description / topics 需要有 admin 权限的 PAT 手动执行。
+          # 这步失败不影响 release 本身，故 continue-on-error。
           gh api --method PATCH "repos/${{ github.repository }}" \
             --field 'description=丰容/节能项目评审框架：四维度检查清单 + 评审闭环 + 证据纪律。一个在真实使用中迭代出来的开源框架，给人类与 agent 两套入口。' \
             --silent
