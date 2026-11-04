@@ -43,9 +43,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          # 幂等且**无损**：release 已存在就更新（保留既有附件与发布内容），
-          # 不存在才新建。
-          # （先前实现是"先删再建"——重跑期间会丢失既有附件，且中途失败会留下空档，已改。）
+          # release 已存在则更新、不存在才新建，避免先删再建留下空档。
+          # 边界：edit 会覆盖正文；后续 upload --clobber 会覆盖同名附件，
+          # 仅未被更新操作触及的既有附件会保留。
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "release $TAG 已存在 → 更新（保留既有附件）"
             gh release edit "$TAG" \

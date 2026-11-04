@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-v1.13-crimson.svg" alt="version v1.13">
+  <img src="https://img.shields.io/badge/rules-v1.13-crimson.svg" alt="rules v1.13">
   <img src="https://img.shields.io/badge/entry-human%20%2B%20agent-slategray.svg" alt="human + agent">
   <img src="https://img.shields.io/badge/i18n-%E4%B8%AD%E6%96%87-lightgrey.svg" alt="中文">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/14%20versions-chocolate.svg" alt="14 versions"></a>
@@ -15,6 +15,8 @@
 ---
 
 # fengneng-review
+
+> 规则版：**v1.13**｜公开包修订：**v1.13.1**（代码、文档与发布层修复，不改变规则问法）
 
 > **不是给答案，是帮你把依据和未知分开。**
 >
@@ -73,12 +75,12 @@ python -X utf8 ~/.claude/skills/fengneng-review/scripts/fengneng_review_lint.py 
 1. 结论必须落在六态之一：**继续 / 限额试验 / 缩减 / 暂停 / 停止 / 接受残余风险**；
 2. 只有**被采纳的承诺**才写成**硬谓词**（截止日 + 可检查的完成标准 + 验证方式 + "证明什么"标注）并挂账追踪；
 3. 每次评审记录**框架体感**，累计到阈值触发**框架复盘**，复盘只改问法、不改结论；
-4. **机械闸只验证格式与事实，不替代语义判断**。
+4. **配套脚本只核格式、日期与声明状态，不替代证据核验与价值判断**。
 
-> ⚠️ **机械闸的能力边界（请照实理解）**：配套的两个脚本**只做格式与状态判定** ——
-> 格式闸核对字段是否齐备、结论是否在档位内；闭环闸读取**截止日期与状态标记**，判断条件是否逾期。
-> **它们不执行条件所要求的脚本、不核对文件事实、不验证价值判断。**
-> 「条件已到期」只意味着**该核了**，不意味着**核过了**；价值结论仍由人给。
+> ⚠️ **机械闸的能力边界（请照实理解）**：格式闸核对字段是否齐备、结论是否在档位内；
+> 闭环闸读取**截止日期与显式状态标记**，判断是否该复核。
+> **它们不执行条件所要求的检查、不核对文件内容或运行结果、不验证价值判断。**
+> 「条件已到期」只意味着**该核了**，不意味着**核过了**；实际证据须另行检查，价值结论仍由人给。
 
 ---
 

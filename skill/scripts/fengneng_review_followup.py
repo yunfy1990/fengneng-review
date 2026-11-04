@@ -6,7 +6,8 @@
 
 基于控制论闭环模型（setpoint=评审条件硬谓词、sensor=本脚本）：
   - 只有「被采纳的承诺」才应写成条件（v1.7）
-  - Type A（客观可检查）由本脚本自动验证；Type A 证据不得替代 Type B 价值判断
+  - 本脚本只读取 Type A/B 条件的截止日期与显式状态；实际证据须另行执行对应检查
+  - Type A 证据不得替代 Type B 价值判断
   - Type B（需人类判断）到期只提醒作者判断
   - Surface 动作：到期未完成时停止+报告+等指示，不自动重试/降级；
     作者的合法处置含延期/放弃/修正条件/停止追踪（停止追踪=正式结束）
@@ -45,7 +46,8 @@ DEFAULT_LOG = Path.cwd() / "REVIEW_LOG.md"
 PROJECT_ROOT = None
 
 REVIEW_HEADER = re.compile(r"^#{2,3}\s+评审[：:]", re.M)
-CONDITIONAL_MARK = "⚠️"
+CONCLUSION_LINE = re.compile(r"\*\*结论\*\*(?:[（(][^）)]*[）)])?[：:][ \t]*([^\n]*)")
+CONDITIONAL_CONCLUSION = re.compile(r"^⚠️\s*有条件过(?=$|[\s（(，,。；;])")
 
 # 新建目录未评审检测的豁免名单：这些一级目录不是"个人项目/事务"，不需要丰容评审
 #  - 系统/工具目录：.netlify/.qoder/.wrangler/.agents/.private 等
@@ -112,6 +114,12 @@ def split_reviews(text):
     return reviews
 
 
+def is_conditional_review(body):
+    """只按结论字段识别有条件过；正文其他位置的 ⚠️ 不改变评审结论。"""
+    match = CONCLUSION_LINE.search(body)
+    return bool(match and CONDITIONAL_CONCLUSION.match(match.group(1).strip()))
+
+
 def parse_conditions(body):
     """从评审条目中解析条件列表，返回 [(condition_id, type, deadline, desc, done)]。"""
     conditions = []
@@ -137,7 +145,7 @@ def check_review(header, body, today):
     warns = []
     infos = []
 
-    if CONDITIONAL_MARK not in body:
+    if not is_conditional_review(body):
         return blocks, warns, infos
 
     # 闭环状态（v1.7 复核修订：条目级终态控制跟踪——stopped/closed/not-applicable ⇒ 整条不再追踪，
@@ -379,7 +387,7 @@ def run(log_path, today=None, project_root=None):
         )
 
     for header, body in reviews:
-        if CONDITIONAL_MARK not in body:
+        if not is_conditional_review(body):
             continue
         conditional_count += 1
         b, w, i = check_review(header, body, today)
@@ -538,6 +546,17 @@ def selftest():
     b, w, i, cnt = run_fixture(fixture4, today)
     if cnt != 0:
         failures.append(f"夹具4：期望0个有条件过，实际{cnt}")
+
+    # 夹具4b：结论为✅过，建议中的⚠️和过期条件文本不得把条目改成有条件过
+    fixture4b = """### 评审：通过但有提醒（2026-10-14）
+
+**结论**：✅ 过
+**建议**：⚠️ 这只是提醒，不是评审条件
+- C1（Type A，截止2026-10-10）：不应被追踪的历史文本
+"""
+    b, w, i, cnt = run_fixture(fixture4b, today)
+    if cnt != 0 or b or w or i:
+        failures.append(f"夹具4b：期望0个有条件过且无告警，实际cnt={cnt} b={b} w={w} i={i}")
 
     # 夹具5：旧格式（有条件过但无硬谓词）→ WARN
     fixture5 = """### 评审：旧格式项目（2026-10-12）
@@ -780,7 +799,7 @@ def selftest():
         for f in failures:
             print(f"  - {f}")
         return 1
-    print(f"✅ 自检通过（14项条件夹具 + 4组复盘触发夹具全部通过）")
+    print("✅ 自检通过（15项条件夹具 + 4组复盘触发夹具全部通过）")
     return 0
 
 
@@ -790,7 +809,7 @@ def run_fixture(text, today):
     all_blocks, all_warns, all_infos = [], [], []
     conditional_count = 0
     for header, body in reviews:
-        if CONDITIONAL_MARK not in body:
+        if not is_conditional_review(body):
             continue
         conditional_count += 1
         b, w, i = check_review(header, body, today)
@@ -866,13 +885,13 @@ def main():
         print()
 
     if not blocks and not warns and not infos:
-        print("✅ 所有评审条件/待办均已完成或无截止日期约束")
+        print("✅ 没有需要提示的到期条件/待办")
 
     if blocks:
-        print(f"❌ 有 {len(blocks)} 个条件/待办已过期未完成 → 退出码1（报告级标红，不阻断受控动作；需 Surface 给作者）")
+        print(f"❌ 有 {len(blocks)} 个条件/待办已到期且未声明完成或停止 → 退出码1（提示另行核证据，不阻断受控动作）")
         sys.exit(1)
     else:
-        print("✅ 无过期未完成条件/待办 → 退出码0")
+        print("✅ 无已到期且未声明完成或停止的条件/待办 → 退出码0")
         sys.exit(0)
 
 
