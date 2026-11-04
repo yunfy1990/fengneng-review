@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write   # 建 release / 传附件所需
+  administration: write  # 改仓库 description / topics（仓库设置类元信息）
 
 jobs:
   release:
@@ -41,10 +42,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" \
-            --title "$TAG · 丰容/节能评审框架" \
-            --notes-file /tmp/release-notes.md \
-            --verify-tag
+          # 幂等：release 已存在则改写（重推 tag 时不会因"已存在"而失败）
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release $TAG 已存在，改为更新"
+            gh release edit "$TAG" \
+              --title "$TAG · 丰容/节能评审框架" \
+              --notes-file /tmp/release-notes.md
+          else
+            gh release create "$TAG" \
+              --title "$TAG · 丰容/节能评审框架" \
+              --notes-file /tmp/release-notes.md \
+              --verify-tag
+          fi
 
       - name: Upload images
         env:
@@ -61,9 +70,12 @@ jobs:
 
       - name: Set repository description and topics
         if: always()
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # 内置 GITHUB_TOKEN 默认无 administration 权限，改仓库元信息可能 403；
+          # 失败不影响 release 本身，故 continue-on-error。
           gh api --method PATCH "repos/${{ github.repository }}" \
             --field 'description=丰容/节能项目评审框架：四维度检查清单 + 评审闭环 + 证据纪律。一个在真实使用中迭代出来的开源框架，给人类与 agent 两套入口。' \
             --silent
