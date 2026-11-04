@@ -43,18 +43,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          # 幂等：release 已存在则改写（重推 tag 时不会因"已存在"而失败）
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "release $TAG 已存在，改为更新"
-            gh release edit "$TAG" \
-              --title "$TAG · 丰容/节能评审框架" \
-              --notes-file /tmp/release-notes.md
-          else
-            gh release create "$TAG" \
-              --title "$TAG · 丰容/节能评审框架" \
-              --notes-file /tmp/release-notes.md \
-              --verify-tag
-          fi
+          # 幂等重建：先删残留（不删 tag，避免误伤），再建。
+          # GitHub 上"删除 tag"会连带删除关联 release，所以本工作流只重建 release、不动 tag。
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release create "$TAG" \
+            --title "$TAG · 丰容/节能评审框架" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag
 
       - name: Upload images
         env:
