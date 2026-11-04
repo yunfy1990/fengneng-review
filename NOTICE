@@ -1,9 +1,6 @@
 fengneng-review
 Copyright 2026 Yunfy
 
-This product includes software developed as part of a personal AI-assisted
-knowledge-work system.
-
 Portions of this project (the framework's question set, evidence discipline,
 and the closure mechanism) were derived from real usage evidence and iterative
 review cycles documented in CHANGELOG.md and skill/references/HISTORY.md.

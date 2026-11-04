@@ -1,21 +1,57 @@
+<p align="center">
+  <img src="docs/hero.png" alt="丰容 / 节能评审框架" width="100%">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License Apache-2.0"></a>
+  <img src="https://img.shields.io/badge/version-v1.13-crimson.svg" alt="version v1.13">
+  <img src="https://img.shields.io/badge/entry-human%20%2B%20agent-slategray.svg" alt="human + agent">
+  <img src="https://img.shields.io/badge/i18n-%E4%B8%AD%E6%96%87-lightgrey.svg" alt="中文">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/14%20versions-chocolate.svg" alt="14 versions"></a>
+</p>
+
+<p align="center"><sub>四维度检查清单 · 评审闭环 · 证据纪律 —— 一个在真实使用中迭代出来的框架</sub></p>
+
+---
+
 # fengneng-review
 
-> 丰容/节能项目评审框架 · v1.13 · Apache License 2.0
-> 一个**在真实使用中迭代**的个人项目评审框架：四维度检查清单 + 评审闭环 + 证据纪律。
-
-## 这是什么
+> **不是给答案，是让答案有证据。**
 
 大多数"该不该做这个项目"的判断，最后都塌成两种坏结果：
 
 - **凭感觉开工** → 做完发现不值，于是烂尾；
-- **凭感觉砍掉** → 砍掉了本该做的那件。
+- **凭感觉砍掉** → 砍掉了本该做的那件，而且事后没人说得清为什么。
 
-本框架给的是一个**可复核的判断过程**：不是给答案，是让答案有证据。
+本框架给的不是答案，是**一段能被复核的判断过程**。
 
-**核心问题只有一个：这件事带来的丰容（心理/社交/物理感官的丰富度），
-和它消耗的精力（含被 AI 加速之后反而变多的那部分），是不是划算。**
+它要回答的核心问题只有一个：
+
+> **这件事带来的丰容（心理 / 社交 / 物理感官的丰富度），
+> 和它消耗的精力——包括被 AI 加速之后反而变多的那部分——是不是划算。**
+
+---
+
+## 快速开始
+
+**给 agent 用**（兼容 `SKILL.md` frontmatter 的客户端：Claude Code / Kimi Code / OpenCode 等）：
+
+```bash
+git clone https://github.com/yunfy1990/fengneng-review.git
+cp -r fengneng-review/skill ~/.claude/skills/fengneng-review   # 换成本机 skill 目录
+python -X utf8 ~/.claude/skills/fengneng-review/scripts/fengneng_review_lint.py --selftest
+```
+
+然后在对话里说：**"新开一个项目之前，先过一遍丰容评审"**，它就会按 `skill/SKILL.md` 的清单走。
+
+**给人用**：直接读 [`human/为什么需要这套框架.md`](human/为什么需要这套框架.md)，
+照着四个维度问一遍，结论落六态之一，被采纳的承诺写成硬谓词挂账。
+
+---
 
 ## 四维度
+
+![四维度矩阵](docs/四维度矩阵.png)
 
 | 维度 | 问的是什么 |
 |---|---|
@@ -24,40 +60,58 @@
 | **三、平衡与风险** | 遇到问题时能不能停下来？出错了损失什么？谁来做运维？读写权限风险？ |
 | **四、铁律兼容** | 是否触碰既有的硬约束与禁忌？ |
 
+---
+
 ## 评审闭环
+
+![评审闭环](docs/评审闭环.png)
 
 评审不是终点。框架要求：
 
 1. 结论必须落在六态之一：**继续 / 限额试验 / 缩减 / 暂停 / 停止 / 接受残余风险**；
-2. 只被采纳的承诺才写成**硬谓词**（含截止日 + 可检查的完成标准 + 验证方式 + "证明什么"标注）并挂账追踪；
+2. 只被**被采纳的承诺**才写成**硬谓词**（截止日 + 可检查的完成标准 + 验证方式 + "证明什么"标注）并挂账追踪；
 3. 每次评审记录**框架体感**，累计到阈值触发**框架复盘**，复盘只改问法、不改结论；
 4. **机械闸只验证格式与事实，不替代语义判断**。
 
-## 证据纪律（本框架最容易被忽略、也最值钱的部分）
+---
+
+## 证据纪律
+
+![证据纪律](docs/证据纪律.png)
+
+这部分可能比四维度更值钱 —— 四条都是被现实打出来的：
 
 - **文档 ↔ 实现必须对读**。文档写"一律推送"、实现有持仓前提 —— 这是纸面规则，不是行为。
 - **触发条件当前是否可能成立**。永不成立 = 纸面条款候选；长期成立却没有动作 = 噪声候选。
-- **单次成功只证明发生过**。要下可靠性结论，须重复运行并报出次数 n 与失败数；样本不足就标"待验证"，不写"稳定"。
+- **单次成功只证明"发生过"**。要下可靠性结论，须重复运行并报出次数 n 与失败数；样本不足就标"待验证"，不写"稳定"。
 - **独立性有层级**。不同源只是起点；独立层必须能接触原始凭证、自由选择检查方法、报告不同结论。能对摘要背书的，只是第二意见。
 
-## 目录
+---
+
+## 目录结构
 
 ```
 fengneng-review/
 ├─ README.md          ← 本文件（人类入口）
 ├─ human/             ← 人类长文版：这套东西怎么来的、踩过什么坑
-├─ skill/             ← agent 版：SKILL.md + 模板 + lint 脚本
-├─ docs/              ← 图示与配图
-└─ LICENSE  NOTICE  CHANGELOG.md
+├─ skill/             ← agent 版：SKILL.md + references/ + lint 脚本
+├─ docs/              ← 配图（hero / 四维度 / 闭环 / 证据纪律）
+├─ scripts/           ← 配图生成脚本（可复现，改文案后可重跑）
+├─ CHANGELOG.md       ← 13 版设计沿革
+├─ NOTICE             ← 署名与引用礼仪
+└─ LICENSE            ← Apache License 2.0
 ```
 
-## 给 agent 用的怎么装
+| 路径 | 给谁看 | 干什么 |
+|---|---|---|
+| `human/为什么需要这套框架.md` | 人 | 框架的来历、两个烂尾项目、边界声明 |
+| `skill/SKILL.md` | agent | 评审流程本体，含触发条件与硬护栏 |
+| `skill/references/HISTORY.md` | agent / 人 | 每一轮迭代"补了哪条问法、为什么补" |
+| `skill/scripts/fengneng_review_lint.py` | agent | 硬谓词与评审记录的格式校验（`--selftest` 自检） |
 
-把 `skill/` 目录放进你的 skill 目录（Claude Code / Kimi Code 等兼容 `SKILL.md` frontmatter 的客户端），
-然后按 `skill/SKILL.md` 的"什么时候用"触发。`skill/scripts/fengneng_review_lint.py` 是配套的格式校验，
-可单独跑：`python -X utf8 scripts/fengneng_review_lint.py --selftest`。
+---
 
-## 边界声明（重要）
+## 边界声明（请认真读这一段）
 
 - 本框架**只产出判断与风险提示，不产出授权**。否决权仅属作者明确规定的禁忌范围。
 - 框架的适用范围是**单个项目 / 产品 / 重大功能**。**它解决不了系统级问题** —— 当问题的对象是
@@ -65,12 +119,20 @@ fengneng-review/
   本框架不提供判据，需要升到系统视角单独处理。
 - 四条铁律是 agent 从真实烂尾案例中提炼的**场景化风险提示**，未经普遍化为所有机制的禁忌。
 
+---
+
 ## 致谢与来源
 
-本框架为原创组合，业界无成熟现成框架可抄。设计沿革见 `CHANGELOG.md` 与 `skill/references/HISTORY.md`，
-其中记录了每一轮迭代"补了哪条问法、为什么补"。
+本框架为原创组合，业界无成熟现成框架可抄。设计沿革见 [`CHANGELOG.md`](CHANGELOG.md) 与
+[`skill/references/HISTORY.md`](skill/references/HISTORY.md)，其中记录了每一轮迭代"补了哪条问法、为什么补"。
+
+> 一个只讲结论不讲来路的评审框架，本身就违反了自己的证据纪律。
+
+---
 
 ## License
 
-Apache License 2.0（见 `LICENSE`）。含**专利授权**条款：贡献者授予使用者专利许可，
+[Apache License 2.0](LICENSE) —— 含**专利授权**条款：贡献者授予使用者专利许可，
 使用本项目代码无需另行申请专利许可，也不必担心被专利诉讼。
+
+引用或二次分发请注明出处（见 [NOTICE](NOTICE)）。
