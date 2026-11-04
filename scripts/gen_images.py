@@ -2,10 +2,12 @@
 """生成发布包配图（可复现脚本）。
 
 产出（默认写到仓库根的 docs/）：
-  hero.png          封面横幅（README 顶部）
-  四维度矩阵.png     四个维度速查
-  证据纪律.png       四条证据纪律
-  评审闭环.png       评审闭环流程
+  hero.png               封面横幅（README 顶部）
+  four-dimensions.png    四个维度速查
+  evidence-discipline.png 四条证据纪律
+  review-loop.png        评审闭环流程
+
+文件名一律用 ASCII：中文路径在 GitHub release 附件上传时会被解析成 default.png。
 
 字体：Windows 微软雅黑（msyh.ttc / msyhbd.ttc）。
 注意：微软雅黑缺 U+2194（↔）字形，脚本对 ↔ 走自绘双向箭头，避免渲染成方框。
@@ -263,7 +265,7 @@ def gen_matrix(out):
         font=font(16),
         fill=SUB,
     )
-    im.save(os.path.join(out, "四维度矩阵.png"))
+    im.save(os.path.join(out, "four-dimensions.png"))
 
 
 # ------------------------------------------------------- 证据纪律
@@ -315,7 +317,7 @@ def gen_evidence(out):
             d.text((140, ly), ln, font=font(19), fill=(62, 60, 58))
             ly += 34
         y += h + 16
-    im.save(os.path.join(out, "证据纪律.png"))
+    im.save(os.path.join(out, "evidence-discipline.png"))
 
 
 # ------------------------------------------------------- 评审闭环
@@ -369,7 +371,7 @@ def gen_loop(out):
         font=font(17),
         fill=SUB,
     )
-    im.save(os.path.join(out, "评审闭环.png"))
+    im.save(os.path.join(out, "review-loop.png"))
 
 
 def main():

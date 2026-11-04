@@ -38,7 +38,9 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-DEFAULT_LOG = Path(__file__).resolve().parent.parent.parent / "REVIEW_LOG.md"
+# 评审日志默认取**当前工作目录**（= 项目归属地），与 SKILL.md「skill 目录只放定义，
+# 运行数据放项目归属地」一致；也与格式闸 fengneng_review_lint.py 的默认路径一致。
+DEFAULT_LOG = Path.cwd() / "REVIEW_LOG.md"
 # 项目根目录（用于「未评审目录」提示）；默认 None = 不扫描
 PROJECT_ROOT = None
 
@@ -226,12 +228,14 @@ def scan_todos(todo_dir, today):
 
     for f in sorted(Path(todo_dir).glob("*.md")):
         text = f.read_text(encoding="utf-8")
-        if "type: review-todo" not in text:
+        # SKILL.md 文档口径 = `type: fengneng-condition`；历史台账用 `type: review-todo`。
+        # 两个都认（此前只认后者 ⇒ 按文档建的账扫不到）。
+        if not re.search(r"type:\s*(?:fengneng-condition|review-todo)", text):
             continue
         # 只处理有 T 待办头的账
         matches = list(TODO_HEADER.finditer(text))
         if not matches:
-            warns.append(f"  ⚠️ {f.name}：type: review-todo 但未找到 T 待办硬谓词头（格式不符，建议修正）")
+            warns.append(f"  ⚠️ {f.name}：评审闭环待办但未找到 T 待办硬谓词头（格式不符，建议修正）")
             continue
 
         # 账内所有待办是否含 open 状态：默认 open（未标状态行视为 open，但已完成账会有 done 行）
@@ -348,8 +352,13 @@ def check_retro_trigger(text):
     return warns, infos
 
 
-def run(log_path, today=None):
-    """主运行逻辑，返回 (blocks, warns, infos, review_count)。"""
+def run(log_path, today=None, project_root=None):
+    """主运行逻辑，返回 (blocks, warns, infos, review_count)。
+
+    project_root：给「未评审目录」提示用；为 None 时不扫描该维度。
+    （修复：此前该值只取模块级 PROJECT_ROOT（恒为 None），CLI 的 --scan-dirs 解析结果
+      从未传入 ⇒ 命令行传了目录也不报任何东西。）
+    """
     if today is None:
         today = date.today()
     text = Path(log_path).read_text(encoding="utf-8")
@@ -361,7 +370,8 @@ def run(log_path, today=None):
     conditional_count = 0
 
     # 未评审目录检测（提示器，WARN 级）
-    unreviewed = scan_unreviewed_dirs(PROJECT_ROOT, text) if PROJECT_ROOT else []
+    root = project_root if project_root is not None else PROJECT_ROOT
+    unreviewed = scan_unreviewed_dirs(root, text) if root else []
     if unreviewed:
         all_warns.append(
             f"  🆕 WARN 以下一级目录未在评审日志中出现（若为新项目请补丰容评审；"
@@ -389,6 +399,82 @@ def selftest():
     """自检：用夹具验证解析逻辑。"""
     print("=== fengneng_review_followup 自检 ===")
     failures = []
+
+    # —— 夹具0：真实 CLI 端到端（2026-11-04 独立评审补）——
+    # 此前自检只覆盖函数层，CLI 入口（--scan-dirs / --scan-todos / 默认路径）从未跑过，
+    # 结果是「函数能用、命令行不报目录」这类入口缺陷全绿漏过。这里用子进程真跑一次。
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        # 造一个"项目根"：两个目录，一个在评审日志里出现过、一个没有
+        (root / "已评审项目").mkdir()
+        (root / "新项目未评审").mkdir()
+        log = root / "REVIEW_LOG.md"
+        log.write_text(
+            "## 评审：已评审项目（2026-10-14）\n\n**结论**：⚠️ 有条件过\n\n"
+            "- C1（Type A，截止2026-10-01）：已过期的条件\n",
+            encoding="utf-8",
+        )
+        # 待办目录：一个 fengneng-condition（文档口径），一个 review-todo（历史口径）
+        todos = root / "todos"
+        todos.mkdir()
+        (todos / "a-condition.md").write_text(
+            "---\nstatus: open\ntype: fengneng-condition\n---\n\n"
+            "### T1：某条件（Type A，截止 2026-10-01）\n- 状态：open\n",
+            encoding="utf-8",
+        )
+        (todos / "b-review-todo.md").write_text(
+            "---\nstatus: open\ntype: review-todo\n---\n\n"
+            "### T1：某待办（Type B，截止 2026-11-30）\n- 状态：open\n",
+            encoding="utf-8",
+        )
+
+        def _cli(*args):
+            r = subprocess.run(
+                [sys.executable, "-X", "utf8", str(Path(__file__).resolve()), *args],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+            )
+            return r.returncode, (r.stdout or "") + (r.stderr or "")
+
+        # (a) 过期条件 → rc=1 且报 SURFACE
+        rc, out = _cli(str(log))
+        if rc != 1 or "SURFACE" not in out:
+            failures.append(f"CLI-e2e-1：过期条件应 rc=1 且含 SURFACE，实际 rc={rc}")
+        else:
+            print("  ✅ CLI-e2e-1：过期条件 → rc=1 + SURFACE")
+
+        # (b) --scan-dirs 真正生效（此前 CLI 传了目录也不报任何东西）
+        # 只查「未评审目录」那一行 —— 整个 stdout 里会出现"已评审项目"（它出现在 SURFACE 消息里）
+        rc, out = _cli(str(log), "--scan-dirs", str(root))
+        dir_line = next(
+            (ln for ln in out.splitlines() if "未在评审日志中出现" in ln), ""
+        )
+        if "新项目未评审" not in dir_line:
+            failures.append(f"CLI-e2e-2：--scan-dirs 未报出未评审目录（实际行：{dir_line!r}）")
+        elif "已评审项目" in dir_line:
+            failures.append("CLI-e2e-2：--scan-dirs 误报了已评审目录")
+        else:
+            print("  ✅ CLI-e2e-2：--scan-dirs 报出未评审目录，且不误报已评审目录")
+
+        # (c) --scan-todos 同时认 fengneng-condition 与 review-todo
+        rc, out = _cli(str(log), "--scan-todos", str(todos))
+        if "硬谓词待办：2 个" not in out:
+            failures.append(f"CLI-e2e-3：--scan-todos 应识别 2 个待办（两种 type），实际输出：{out[-300:]}")
+        else:
+            print("  ✅ CLI-e2e-3：--scan-todos 认 fengneng-condition + review-todo 两种 type")
+
+        # (d) 默认路径 = 当前工作目录（与格式闸一致）
+        r = subprocess.run(
+            [sys.executable, "-X", "utf8", str(Path(__file__).resolve())],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            cwd=str(root),
+        )
+        if "不存在" in (r.stdout or "") + (r.stderr or ""):
+            failures.append("CLI-e2e-4：默认日志路径应取当前工作目录的 REVIEW_LOG.md")
+        else:
+            print("  ✅ CLI-e2e-4：默认日志路径 = 当前工作目录")
 
     # 夹具1：正常有条件过，含已完成和未完成条件
     fixture1 = """### 评审：测试项目（2026-10-14）
@@ -743,7 +829,7 @@ def main():
         sys.exit(2)
 
     today = date.today()
-    blocks, warns, infos, conditional_count = run(log_path, today)
+    blocks, warns, infos, conditional_count = run(log_path, today, project_root)
 
     print(f"=== 丰容/节能评审闭环追踪 ===")
     print(f"评审日志：{log_path}")

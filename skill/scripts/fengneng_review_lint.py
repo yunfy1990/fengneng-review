@@ -20,7 +20,9 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-DEFAULT_LOG = Path(__file__).resolve().parent.parent / "REVIEW_LOG.md"
+# 评审日志默认取**当前工作目录**（= 项目归属地），与 SKILL.md「skill 目录只放定义，
+# 运行数据放项目归属地」一致。skill/ 与仓根都不是默认位置（历史实现两处不一致，已修）。
+DEFAULT_LOG = Path.cwd() / "REVIEW_LOG.md"
 
 _OPT_PAREN = r"(?:[（(][^）)]*[）)])?"  # 字段标签后允许一层可选括号注记（2026-10-18 放宽：闸查字段存在性，不查字面排版——「**铁律兼容**（机制类）：」语义合规，误报假违规与投资 C1 裸 grep 教训同源）
 
@@ -33,7 +35,13 @@ REQUIRED_FIELDS = [
 
 VALID_MATRIX_ZONES = ("甜品区", "沉迷区", "苦修区", "烂尾区", "中间区")
 
-VALID_CONCLUSIONS = ("✅", "⚠️", "❌")
+# 结论必须是三档之一：锚定到"符号 + 档位词"，允许后接括注。
+# 反例（已修）：`**结论**：✅ 完全胡说` 只含符号 → 旧实现误判为合法。
+VALID_CONCLUSION_PATTERNS = [
+    re.compile("^✅\s*过"),
+    re.compile("^⚠️\s*有条件过"),
+    re.compile("^❌\s*不过"),
+]
 # 「现有产物」字段的有效值：列出具体文件（含路径/扩展名），或明确写"无新增，本项目为全新"
 VALID_EXISTING_PATTERNS = [
     re.compile(r"\.(?:md|py|json|csv|txt|html?|js|ts|sh|ps1|yaml|yml|toml)", re.I),
@@ -69,7 +77,7 @@ def check_review(header, body):
             violations.append(f"缺少「{field_name}」字段")
 
     # ② 现有产物字段非空检查
-    existing_match = re.search(rf"\*\*现有产物\*\*{_OPT_PAREN}[：:]\s*(.+?)(?:\n|$)", body)
+    existing_match = re.search(rf"\*\*现有产物\*\*{_OPT_PAREN}[：:][ \t]*([^\n]*)", body)
     if existing_match:
         value = existing_match.group(1).strip()
         if not value:
@@ -78,17 +86,17 @@ def check_review(header, body):
             violations.append(f"「现有产物」字段值不合法：「{value[:40]}」——必须列出具体文件或写「无新增，本项目为全新」")
 
     # ③ 结论合法性
-    conclusion_match = re.search(rf"\*\*结论\*\*{_OPT_PAREN}[：:]\s*(.+?)(?:\n|$)", body)
+    conclusion_match = re.search(rf"\*\*结论\*\*{_OPT_PAREN}[：:][ \t]*([^\n]*)", body)
     if conclusion_match:
         value = conclusion_match.group(1).strip()
-        if not any(c in value for c in VALID_CONCLUSIONS):
+        if not any(p.match(value) for p in VALID_CONCLUSION_PATTERNS):
             violations.append(f"结论不合法：「{value[:30]}」——必须是 ✅过 / ⚠️有条件过 / ❌不过")
 
     # ④ 矩阵定位合法性
-    matrix_match = re.search(rf"\*\*矩阵定位\*\*{_OPT_PAREN}[：:]\s*(.+?)(?:\n|$)", body)
+    matrix_match = re.search(rf"\*\*矩阵定位\*\*{_OPT_PAREN}[：:][ \t]*([^\n]*)", body)
     if matrix_match:
         value = matrix_match.group(1).strip()
-        if not any(z in value for z in VALID_MATRIX_ZONES):
+        if not any(value.startswith(z) for z in VALID_MATRIX_ZONES):
             violations.append(f"矩阵定位不合法：「{value[:30]}」——必须是 甜品区/沉迷区/苦修区/烂尾区/中间区")
 
     return violations
@@ -176,6 +184,22 @@ def selftest():
             "字段标签带括号但无冒号（仍算缺失）",
             "## 评审：无冒号（2026-10-18）\n\n**结论**：✅ 过\n**矩阵定位**：甜品区\n\n**现有产物**：test.py\n**业界参考**：无成熟业界参考，阈值从本仓库数据提炼\n\n**丰容价值**：高\n**节能价值**：中\n**平衡与风险**：低\n**铁律兼容**（机制类） 好\n\n**建议**：无\n\n**框架体感**：无",
             1,  # 铁律兼容无冒号 ⇒ 仍判缺字段
+        ),
+        # —— 以下 3 例为独立评审（2026-11-04）补的反例 ——
+        (
+            "反例：结论只含符号但档位词是胡说（旧实现误判合法）",
+            "## 评审：胡说结论（2026-10-12）\n\n**结论**：✅ 完全胡说\n**矩阵定位**：甜品区\n\n**现有产物**：test.py\n**业界参考**：无成熟业界参考，阈值从本仓库数据提炼\n\n**丰容价值**：高\n**节能价值**：中\n**平衡与风险**：低\n**铁律兼容**：好\n\n**建议**：无\n\n**框架体感**：无",
+            1,
+        ),
+        (
+            "反例：现有产物为空且下一行含文件名（不得跨行吞）",
+            "## 评审：跨行吞（2026-10-12）\n\n**结论**：✅ 过\n**矩阵定位**：甜品区\n\n**现有产物**：\n**业界参考**：见 README.md\n\n**丰容价值**：高\n**节能价值**：中\n**平衡与风险**：低\n**铁律兼容**：好\n\n**建议**：无\n\n**框架体感**：无",
+            1,  # 现有产物为空 ⇒ 1 条；「见 README.md」属业界参考，不得被当现有产物
+        ),
+        (
+            "反例：矩阵定位含某档位词但不在开头",
+            "## 评审：矩阵定位非开头（2026-10-12）\n\n**结论**：✅ 过\n**矩阵定位**：不是甜品区而是中间区\n\n**现有产物**：test.py\n**业界参考**：无成熟业界参考，阈值从本仓库数据提炼\n\n**丰容价值**：高\n**节能价值**：中\n**平衡与风险**：低\n**铁律兼容**：好\n\n**建议**：无\n\n**框架体感**：无",
+            1,
         ),
     ]
 
