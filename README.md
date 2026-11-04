@@ -51,7 +51,7 @@ python -X utf8 ~/.claude/skills/fengneng-review/scripts/fengneng_review_lint.py 
 
 ## 四维度
 
-![四维度矩阵](docs/四维度矩阵.png)
+![四维度矩阵](docs/four-dimensions.png)
 
 | 维度 | 问的是什么 |
 |---|---|
@@ -64,7 +64,7 @@ python -X utf8 ~/.claude/skills/fengneng-review/scripts/fengneng_review_lint.py 
 
 ## 评审闭环
 
-![评审闭环](docs/评审闭环.png)
+![评审闭环](docs/review-loop.png)
 
 评审不是终点。框架要求：
 
@@ -77,7 +77,7 @@ python -X utf8 ~/.claude/skills/fengneng-review/scripts/fengneng_review_lint.py 
 
 ## 证据纪律
 
-![证据纪律](docs/证据纪律.png)
+![证据纪律](docs/evidence-discipline.png)
 
 这部分可能比四维度更值钱 —— 四条都是被现实打出来的：
 

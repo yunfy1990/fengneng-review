@@ -51,12 +51,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
+          # 清理历史遗留的错误附件名（早期版本把中文路径 + #标签 解析成了 default.png）
+          gh release delete-asset "$TAG" default.png --yes 2>/dev/null || true
           gh release upload "$TAG" \
-            "docs/四维度矩阵.png#四维度矩阵" \
-            "docs/证据纪律.png#证据纪律" \
+            "docs/four-dimensions.png" \
+            "docs/evidence-discipline.png" \
+            "docs/review-loop.png" \
             --clobber
 
       - name: Set repository description and topics
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
