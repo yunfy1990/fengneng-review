@@ -69,7 +69,7 @@ python -X utf8 ~/.claude/skills/fengneng-review/scripts/fengneng_review_lint.py 
 评审不是终点。框架要求：
 
 1. 结论必须落在六态之一：**继续 / 限额试验 / 缩减 / 暂停 / 停止 / 接受残余风险**；
-2. 只被**被采纳的承诺**才写成**硬谓词**（截止日 + 可检查的完成标准 + 验证方式 + "证明什么"标注）并挂账追踪；
+2. 只有**被采纳的承诺**才写成**硬谓词**（截止日 + 可检查的完成标准 + 验证方式 + "证明什么"标注）并挂账追踪；
 3. 每次评审记录**框架体感**，累计到阈值触发**框架复盘**，复盘只改问法、不改结论；
 4. **机械闸只验证格式与事实，不替代语义判断**。
 
@@ -94,10 +94,10 @@ python -X utf8 ~/.claude/skills/fengneng-review/scripts/fengneng_review_lint.py 
 fengneng-review/
 ├─ README.md          ← 本文件（人类入口）
 ├─ human/             ← 人类长文版：这套东西怎么来的、踩过什么坑
-├─ skill/             ← agent 版：SKILL.md + references/ + lint 脚本
+├─ skill/             ← agent 版：SKILL.md + references/ + 两支机械闸
 ├─ docs/              ← 配图（hero / 四维度 / 闭环 / 证据纪律）
 ├─ scripts/           ← 配图生成脚本（可复现，改文案后可重跑）
-├─ CHANGELOG.md       ← 13 版设计沿革
+├─ CHANGELOG.md       ← 14 版设计沿革
 ├─ NOTICE             ← 署名与引用礼仪
 └─ LICENSE            ← Apache License 2.0
 ```
@@ -107,7 +107,8 @@ fengneng-review/
 | `human/为什么需要这套框架.md` | 人 | 框架的来历、两个烂尾项目、边界声明 |
 | `skill/SKILL.md` | agent | 评审流程本体，含触发条件与硬护栏 |
 | `skill/references/HISTORY.md` | agent / 人 | 每一轮迭代"补了哪条问法、为什么补" |
-| `skill/scripts/fengneng_review_lint.py` | agent | 硬谓词与评审记录的格式校验（`--selftest` 自检） |
+| `skill/scripts/fengneng_review_lint.py` | agent | 评审记录的字段格式校验（`--selftest` 自检） |
+| `skill/scripts/fengneng_review_followup.py` | agent | 条件到期追踪 + 复盘触发两线判定（`--selftest` 自检） |
 
 ---
 
